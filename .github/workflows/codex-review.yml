@@ -16,7 +16,7 @@ jobs:
     outputs:
       final_message: ${{ steps.codex.outputs.final-message }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: refs/pull/${{ inputs.pull_request }}/merge
           fetch-depth: 0
@@ -39,7 +39,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Post advisory review
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           REVIEW_BODY: ${{ needs.review.outputs.final_message }}
           PR_NUMBER: ${{ inputs.pull_request }}
