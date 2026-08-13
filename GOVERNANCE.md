@@ -9,7 +9,7 @@ FormKind currently uses a maintainer-led model.
 - **Reviewers** are trusted contributors who regularly review a project area.
 - **Maintainers** can merge changes, manage releases, respond to security reports, and set project direction.
 
-The founding maintainer is [Ho Viet Khanh (`@HK4zCzi`)](https://github.com/HK4zCzi).
+The founding maintainer is [Ho Viet Khanh (`@khanhcamap2020-sudo`)](https://github.com/khanhcamap2020-sudo).
 
 ## Decisions
 

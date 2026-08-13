@@ -47,12 +47,12 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/HK4zCzi/formkind.git"
+    "url": "git+https://github.com/khanhcamap2020-sudo/formkind.git"
   },
   "bugs": {
-    "url": "https://github.com/HK4zCzi/formkind/issues"
+    "url": "https://github.com/khanhcamap2020-sudo/formkind/issues"
   },
-  "homepage": "https://github.com/HK4zCzi/formkind#readme",
+  "homepage": "https://github.com/khanhcamap2020-sudo/formkind#readme",
   "dependencies": {
     "parse5": "^8.0.0"
   },

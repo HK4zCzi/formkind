@@ -8537,7 +8537,9 @@ async function readDirectory(directory, maxBytes) {
 }
 async function readUrl(url, maxBytes) {
   const response = await fetch(url, {
-    headers: { "user-agent": "formkind/0.1 (+https://github.com/HK4zCzi/formkind)" },
+    headers: {
+      "user-agent": "formkind/0.2 (+https://github.com/khanhcamap2020-sudo/formkind)"
+    },
     signal: AbortSignal.timeout(1e4)
   });
   if (!response.ok) throw new Error(`${url} returned HTTP ${response.status}.`);
@@ -8614,7 +8616,7 @@ function sarif(result) {
           tool: {
             driver: {
               name: "FormKind",
-              informationUri: "https://github.com/HK4zCzi/formkind",
+              informationUri: "https://github.com/khanhcamap2020-sudo/formkind",
               version: "0.1.0",
               rules: rules.filter((rule) => usedRuleIds.has(rule.id)).map((rule) => ({
                 id: rule.id,

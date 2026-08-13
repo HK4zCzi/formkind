@@ -55,7 +55,7 @@ function sarif(result: AuditResult): string {
           tool: {
             driver: {
               name: "FormKind",
-              informationUri: "https://github.com/HK4zCzi/formkind",
+              informationUri: "https://github.com/khanhcamap2020-sudo/formkind",
               version: "0.1.0",
               rules: rules
                 .filter((rule) => usedRuleIds.has(rule.id))

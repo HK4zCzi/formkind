@@ -1,7 +1,7 @@
 # FormKind
 
-[![CI](https://github.com/HK4zCzi/formkind/actions/workflows/ci.yml/badge.svg)](https://github.com/HK4zCzi/formkind/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/HK4zCzi/formkind/actions/workflows/codeql.yml/badge.svg)](https://github.com/HK4zCzi/formkind/actions/workflows/codeql.yml)
+[![CI](https://github.com/khanhcamap2020-sudo/formkind/actions/workflows/ci.yml/badge.svg)](https://github.com/khanhcamap2020-sudo/formkind/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/khanhcamap2020-sudo/formkind/actions/workflows/codeql.yml/badge.svg)](https://github.com/khanhcamap2020-sudo/formkind/actions/workflows/codeql.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
 **Global-readiness tooling for forms, from source code to CI policy.**
@@ -127,7 +127,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: HK4zCzi/formkind@v0.2.0
+      - uses: khanhcamap2020-sudo/formkind@v0.2.0
         with:
           path: ./src
           profile: commerce
