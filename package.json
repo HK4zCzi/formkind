@@ -1,7 +1,7 @@
 {
   "name": "formkind",
-  "version": "0.1.0",
-  "description": "Lint web forms for international names, addresses, phone numbers, and locales.",
+  "version": "0.2.0",
+  "description": "Global-readiness toolkit for international forms across HTML, JSX, Vue, and Svelte.",
   "type": "module",
   "bin": {
     "formkind": "dist/cli.js"
@@ -14,6 +14,7 @@
   },
   "files": [
     "dist",
+    "docs/RULES.md",
     "README.md",
     "LICENSE"
   ],
@@ -36,7 +37,11 @@
     "forms",
     "lint",
     "accessibility",
-    "github-action"
+    "github-action",
+    "jsx",
+    "vue",
+    "svelte",
+    "sarif"
   ],
   "author": "Ho Viet Khanh",
   "license": "Apache-2.0",

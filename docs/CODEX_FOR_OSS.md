@@ -6,6 +6,7 @@ This document keeps the application honest and evidence-based. It is not an endo
 
 - A public, Apache-2.0 repository with an identified core maintainer and write access.
 - A practical ecosystem purpose: preventing international-user exclusion in web forms.
+- A project-scale toolkit: 27 rules, five source formats, four policy profiles, baselines, SARIF, a JavaScript API, and reusable CI integration.
 - CI, tests, dependency updates, CodeQL, private vulnerability reporting, release notes, contribution guidance, and governance.
 - An optional, maintainer-triggered Codex review workflow with read-only repository access and human approval.
 
@@ -20,7 +21,7 @@ Record verifiable, public signals here rather than estimating them:
 | Monthly npm downloads | Not published | npm package statistics |
 | External contributors | 0 at launch | Contributors page |
 | Issues/PRs triaged | 0 at launch | Closed issues and pull requests |
-| Releases | 0 at launch | Releases page |
+| Releases | 1 at v0.1 launch | Releases page |
 
 Apply when there is meaningful usage or clear ecosystem evidence. A new repository cannot truthfully claim broad adoption or a long maintenance record.
 
@@ -34,7 +35,7 @@ Replace bracketed fields and update metrics immediately before submitting. Every
 
 **Why this repository qualifies (max 500 characters)**
 
-> FormKind catches web-form assumptions that exclude international users, including ASCII-only names, domestic phone formats, ZIP-only labels, and ambiguous dates. It is used by [projects/users], has [stars/downloads/dependents], and has shipped [releases] with active issue and PR maintenance. Its SARIF and GitHub Action outputs make it reusable across the web ecosystem.
+> FormKind is global-readiness infrastructure for HTML, JSX, Vue, and Svelte forms. Its 27 rules, policy profiles, legacy baselines, SARIF and GitHub Action catch identity, address, phone, date, timezone and localization barriers. It is used by [projects/users], has [stars/downloads/dependents], and has shipped [releases] with active maintenance.
 
 **How API credits would be used (max 500 characters)**
 

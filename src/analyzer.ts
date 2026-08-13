@@ -1,4 +1,5 @@
 import { type DefaultTreeAdapterMap, parse } from "parse5";
+import { applyProfile } from "./profiles.js";
 import { getAttribute, type Rule, rules } from "./rules.js";
 import type { AnalyzeOptions, AuditResult, Finding, Severity } from "./types.js";
 
@@ -42,7 +43,23 @@ function calculateScore(findings: Finding[]): number {
 }
 
 function configuredSeverity(rule: Rule, options: AnalyzeOptions): Severity | "off" {
-  return options.config?.severity?.[rule.id] ?? rule.severity;
+  return applyProfile(options.config ?? {}).severity?.[rule.id] ?? rule.severity;
+}
+
+function fingerprint(ruleId: string, file: string, element: Element, message: string): string {
+  const attributes = [...element.attrs]
+    .filter((attribute) => attribute.name !== "value")
+    .sort((left, right) => left.name.localeCompare(right.name))
+    .map((attribute) => `${attribute.name}=${attribute.value}`)
+    .join(";");
+  const fallback = attributes || `line=${locationOf(element).line}`;
+  const value = `${ruleId}|${file.replaceAll("\\", "/").replace(/^\.\//, "")}|${element.tagName}|${fallback}|${message}`;
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `fk-${(hash >>> 0).toString(16).padStart(8, "0")}`;
 }
 
 export function analyzeHtml(html: string, options: AnalyzeOptions = {}): AuditResult {
@@ -60,14 +77,20 @@ export function analyzeHtml(html: string, options: AnalyzeOptions = {}): AuditRe
       file,
       elements,
       labels,
-      finding: (activeRule, element, message) => ({
-        ruleId: activeRule.id,
-        severity,
-        message: message ?? activeRule.description,
-        help: activeRule.help,
-        file,
-        location: locationOf(element),
-      }),
+      finding: (activeRule, element, message) => {
+        const location = locationOf(element);
+        const finalMessage = message ?? activeRule.description;
+        return {
+          ruleId: activeRule.id,
+          severity,
+          message: finalMessage,
+          help: activeRule.help,
+          file,
+          location,
+          fingerprint: fingerprint(activeRule.id, file, element, finalMessage),
+          category: activeRule.category,
+        };
+      },
     });
     findings.push(...results);
   }

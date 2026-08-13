@@ -21,6 +21,14 @@ inputs:
     description: error, warning, or never.
     required: false
     default: error
+  profile:
+    description: global, strict, commerce, or public-sector.
+    required: false
+    default: global
+  baseline:
+    description: Optional baseline file; only new findings are reported.
+    required: false
+    default: ""
 runs:
   using: composite
   steps:
@@ -31,9 +39,14 @@ runs:
         FORMKIND_FORMAT: ${{ inputs.format }}
         FORMKIND_OUTPUT: ${{ inputs.output }}
         FORMKIND_FAIL_ON: ${{ inputs.fail-on }}
+        FORMKIND_PROFILE: ${{ inputs.profile }}
+        FORMKIND_BASELINE: ${{ inputs.baseline }}
       run: |
-        args=("$FORMKIND_PATH" "--format" "$FORMKIND_FORMAT" "--fail-on" "$FORMKIND_FAIL_ON")
+        args=("scan" "$FORMKIND_PATH" "--profile" "$FORMKIND_PROFILE" "--format" "$FORMKIND_FORMAT" "--fail-on" "$FORMKIND_FAIL_ON")
         if [[ -n "$FORMKIND_OUTPUT" ]]; then
           args+=("--output" "$FORMKIND_OUTPUT")
+        fi
+        if [[ -n "$FORMKIND_BASELINE" ]]; then
+          args+=("--baseline" "$FORMKIND_BASELINE")
         fi
         node "$GITHUB_ACTION_PATH/dist/cli.js" "${args[@]}"

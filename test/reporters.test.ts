@@ -32,5 +32,6 @@ describe("report", () => {
     expect(output.runs[0].results[0].locations[0].physicalLocation.artifactLocation.uri).toBe(
       "form.html",
     );
+    expect(output.runs[0].results[0].partialFingerprints.primaryLocationLineHash).toMatch(/^fk-/);
   });
 });

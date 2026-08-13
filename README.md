@@ -4,50 +4,119 @@
 [![CodeQL](https://github.com/HK4zCzi/formkind/actions/workflows/codeql.yml/badge.svg)](https://github.com/HK4zCzi/formkind/actions/workflows/codeql.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
-**Make web forms work for every name, address, phone number, and locale.**
+**Global-readiness tooling for forms, from source code to CI policy.**
 
-FormKind is a fast, privacy-friendly CLI and GitHub Action that finds assumptions which block international users. It audits HTML locally—no source code or form data is uploaded.
+FormKind finds product assumptions that reject or confuse international users: ASCII-only names, domestic phone masks, five-digit postal codes, forced states, binary identity fields, ambiguous dates, missing timezones, non-decimal measurements, untranslated pages, and more.
+
+It runs locally and deterministically. Source code and form data are never sent to an AI service.
+
+## What it covers
+
+FormKind is more than an HTML linter:
+
+- **27 rules in 7 domains:** document, identity, address, contact, date/time, localization, and accessibility.
+- **Five source formats:** HTML, JSX, TSX, Vue, and Svelte, plus public rendered pages over HTTP(S).
+- **Four policy profiles:** `global`, `strict`, `commerce`, and `public-sector`.
+- **Adoption for legacy apps:** baseline existing findings, then block only new regressions.
+- **Four report formats:** terminal, JSON, Markdown, and SARIF for GitHub code scanning.
+- **Three integration surfaces:** CLI, JavaScript API, and reusable GitHub Action.
+- **Maintainer automation:** optional read-only Codex review, Dependabot, CodeQL, release workflow, and human approval.
 
 ```text
-x signup.html:8:7 ERROR FK002 Personal names accept Unicode letters
-! signup.html:14:7 WARNING FK006 Postal labels are not country-specific
+x src/Checkout.tsx:18:7 ERROR FK010 Postal codes use text fields
+! src/Checkout.tsx:27:7 WARNING FK020 Local date-time fields provide timezone context
 
 FormKind score: 78/100 | 1 file(s) | 1 error(s), 1 warning(s), 0 info
 ```
 
-## Why FormKind?
-
-A form can meet its business requirements and still reject real people: `Łukasz`, `Nguyễn`, or `李` may fail an ASCII-only name rule; `+44 20…` may not fit a domestic phone mask; and “State” or “ZIP code” may be meaningless outside one country. These bugs are easy to ship and hard for a local team to notice.
-
-FormKind turns those assumptions into reviewable, line-level findings before users encounter them.
-
 ## Quick start
 
-Run from a checkout:
+From a checkout:
 
 ```bash
 npm install
 npm run build
-node dist/cli.js ./public
+node dist/cli.js scan ./src --profile commerce
 ```
 
-After the first npm release, projects will be able to install the CLI with `npm install --save-dev formkind` and run `npx formkind ./public`.
-
-Audit a local file, a whole directory, or a public page:
+After npm publication, the equivalent command will be:
 
 ```bash
-formkind signup.html
-formkind ./public --fail-on warning
-formkind https://example.com/register --format markdown
-formkind ./public --format sarif --output formkind.sarif
+npx formkind scan ./src --profile commerce
 ```
+
+The old concise form remains valid: `formkind ./public`.
+
+## Commands
+
+### Scan a project
+
+```bash
+formkind scan ./src
+formkind scan ./src --profile strict --fail-on warning
+formkind scan https://example.com/register --format markdown
+formkind scan ./app --format sarif --output formkind.sarif
+```
+
+### Adopt it without fixing every legacy finding
+
+```bash
+# Capture today's known debt once.
+formkind baseline ./legacy-app --output .formkind-baseline.json
+
+# CI now reports and blocks only findings introduced after the baseline.
+formkind scan ./legacy-app --baseline .formkind-baseline.json
+```
+
+### Initialize policy and inspect rules
+
+```bash
+formkind init --profile public-sector
+formkind rules
+formkind rules --format markdown --output RULES.md
+```
+
+## Policy profiles
+
+| Profile | Designed for |
+| --- | --- |
+| `global` | Conservative defaults suitable for most teams. |
+| `strict` | Products with explicit international quality gates. |
+| `commerce` | Checkout, billing, shipping, delivery, and marketplace forms. |
+| `public-sector` | Identity-sensitive government, education, health, and civic services. |
+
+Profiles change severity, not rule semantics. Teams can override any rule in `.formkindrc.json`:
+
+```json
+{
+  "profile": "commerce",
+  "exclude": ["generated/", "vendor/"],
+  "ignore": ["FK008"],
+  "severity": {
+    "FK003": "error",
+    "FK016": "off"
+  }
+}
+```
+
+## Rule families
+
+| Family | Examples |
+| --- | --- |
+| Document | Missing/invalid language tags, RTL direction, page-wide translation lockout. |
+| Identity | Unicode names, mononyms, required middle names/titles, forced binary gender. |
+| Address | Postal code type/pattern, required region/address-line2, short country lists. |
+| Contact | International telephone length/prefix, phone/email semantics, domestic examples. |
+| Date and time | Ambiguous dates and timezone-free local datetimes. |
+| Localization | Decimal quantities and locale-sensitive input assumptions. |
+| Accessibility | Persistent labels and standard autocomplete tokens. |
+
+Run `formkind rules --format markdown` for the complete live catalog. Rules are intentionally explainable and never infer a user's nationality, ethnicity, or gender.
 
 ## GitHub Action
 
-Pin a release tag in your workflow:
-
 ```yaml
-name: International form audit
+name: Global readiness
 on: [pull_request]
 
 permissions:
@@ -58,63 +127,41 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: HK4zCzi/formkind@v0.1.0
+      - uses: HK4zCzi/formkind@v0.2.0
         with:
-          path: ./public
+          path: ./src
+          profile: commerce
+          baseline: .formkind-baseline.json
+          format: sarif
+          output: formkind.sarif
           fail-on: error
 ```
 
-The repository also includes a SARIF example in [the CI workflow](.github/workflows/ci.yml), so findings can be uploaded to GitHub code scanning.
+The output can be uploaded to GitHub code scanning, consumed by another CI system, or posted as a pull-request comment.
 
-## Rules
+## JavaScript API
 
-| Rule | Default | Checks |
-| --- | --- | --- |
-| `FK001` | warning | The document declares a language. |
-| `FK002` | error | Personal-name patterns do not restrict input to ASCII. |
-| `FK003` | warning | Name fields allow at least 50 characters. |
-| `FK004` | error | Telephone fields have room for an international number. |
-| `FK005` | error | Telephone patterns allow a leading country code. |
-| `FK006` | warning | Postal labels do not assume “ZIP code” for every country. |
-| `FK007` | warning | Date input does not show an ambiguous locale-specific placeholder. |
-| `FK008` | info | Contact fields provide standard autocomplete tokens. |
-| `FK009` | warning | A required state/province/region field has country context. |
+```js
+import { analyzeHtml, report } from "formkind";
 
-Rules are intentionally conservative and deterministic. FormKind never guesses a user's nationality or validates personal data.
+const result = analyzeHtml(source, {
+  file: "Checkout.tsx",
+  config: { profile: "commerce" },
+});
 
-## Configuration
-
-Create `.formkindrc.json` in the directory where the command runs:
-
-```json
-{
-  "ignore": ["FK008"],
-  "severity": {
-    "FK003": "error",
-    "FK009": "off"
-  }
-}
+console.log(report(result, "json"));
 ```
 
-Use `--config path/to/config.json` for a different file, or repeat `--ignore FK001` for a one-off exception. Supported severities are `error`, `warning`, `info`, and `off`.
+## Architecture and growth
 
-## Output formats
+The normalized result model separates source adapters, policy, rule evaluation, baselines, and reporters. See [Architecture](docs/ARCHITECTURE.md), the [project-scale adoption guide](docs/ADOPTION.md), and the [Roadmap](ROADMAP.md).
 
-- `pretty` for people in a terminal.
-- `json` for scripts and dashboards.
-- `markdown` for pull request comments.
-- `sarif` for GitHub code scanning and compatible tools.
+The next major surfaces are a safe browser runner for client-rendered forms, framework-native AST adapters, autofix for low-risk metadata, a VS Code extension, reusable country/locale data checks, and a plugin SDK for community rule packs.
 
-## Scope and limitations
+## Limitations
 
-Version 0.1 audits static `.html` and `.htm` files plus rendered HTML fetched from HTTP(S). It does not execute JavaScript, inspect backend validation, or certify legal/accessibility compliance. Treat findings as focused engineering feedback, not as a substitute for testing with people from the locales you support.
-
-See the [roadmap](ROADMAP.md) for framework templates, configurable locale profiles, and browser-based audits.
-
-The [architecture guide](docs/ARCHITECTURE.md) describes how parser adapters, locale profiles, browser audits, editor integrations, and CI consumers can grow around one stable result model.
+Source adapters in v0.2 perform static analysis and do not execute JavaScript. Dynamic component properties may require the future browser runner. FormKind is engineering guidance, not legal certification, and should complement testing with people in the markets a product supports.
 
 ## Community
 
-Bug reports and new rule proposals are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md), review the [governance model](GOVERNANCE.md), and report vulnerabilities through [GitHub's private security advisory flow](SECURITY.md).
-
-FormKind is licensed under [Apache-2.0](LICENSE).
+Start with [CONTRIBUTING.md](CONTRIBUTING.md), review [GOVERNANCE.md](GOVERNANCE.md), and report vulnerabilities through the private process in [SECURITY.md](SECURITY.md). FormKind is licensed under [Apache-2.0](LICENSE).

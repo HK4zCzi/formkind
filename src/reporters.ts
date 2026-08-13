@@ -70,6 +70,8 @@ function sarif(result: AuditResult): string {
             ruleId: finding.ruleId,
             level: levels[finding.severity],
             message: { text: `${finding.message} ${finding.help}` },
+            partialFingerprints: { primaryLocationLineHash: finding.fingerprint },
+            properties: { category: finding.category },
             locations: [
               {
                 physicalLocation: {
