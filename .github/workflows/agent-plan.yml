@@ -51,7 +51,7 @@ jobs:
           --model "${{ inputs.model }}"
           --format markdown
           --output formkind-agent-plan.md
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: formkind-agent-plan
           path: formkind-agent-plan.md
