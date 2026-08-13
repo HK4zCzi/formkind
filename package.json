@@ -1,7 +1,7 @@
 {
   "name": "formkind",
-  "version": "0.2.0",
-  "description": "Global-readiness toolkit for international forms across HTML, JSX, Vue, and Svelte.",
+  "version": "0.3.0",
+  "description": "Global-readiness toolkit and AI remediation agent for international forms.",
   "type": "module",
   "bin": {
     "formkind": "dist/cli.js"
@@ -14,7 +14,7 @@
   },
   "files": [
     "dist",
-    "docs/RULES.md",
+    "docs",
     "README.md",
     "LICENSE"
   ],
@@ -41,7 +41,10 @@
     "jsx",
     "vue",
     "svelte",
-    "sarif"
+    "sarif",
+    "ai-agent",
+    "openai",
+    "remediation"
   ],
   "author": "Ho Viet Khanh",
   "license": "Apache-2.0",

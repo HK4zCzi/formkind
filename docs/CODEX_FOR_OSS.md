@@ -6,9 +6,9 @@ This document keeps the application honest and evidence-based. It is not an endo
 
 - A public, Apache-2.0 repository with an identified core maintainer and write access.
 - A practical ecosystem purpose: preventing international-user exclusion in web forms.
-- A project-scale toolkit: 27 rules, five source formats, four policy profiles, baselines, SARIF, a JavaScript API, and reusable CI integration.
+- A project-scale toolkit: 27 rules, five source formats, four policy profiles, baselines, SARIF, a JavaScript API, reusable CI, and an opt-in AI remediation agent.
 - CI, tests, dependency updates, CodeQL, private vulnerability reporting, release notes, contribution guidance, and governance.
-- An optional, maintainer-triggered Codex review workflow with read-only repository access and human approval.
+- Optional, maintainer-triggered Codex review and structured agent-planning workflows with read-only repository access and human approval.
 
 ## Evidence to build before applying
 
@@ -39,10 +39,10 @@ Replace bracketed fields and update metrics immediately before submitting. Every
 
 **How API credits would be used (max 500 characters)**
 
-> API credits would power maintainer-only Codex workflows for pull-request review, issue deduplication and triage, release-note preparation, and security-focused regression review. Runs would use least-privilege GitHub permissions, sanitized inputs, and human approval. Credits would support FormKind's public OSS maintenance only, not an end-user paid feature or unauthorized repository scanning.
+> API credits would power FormKind's public remediation agent and maintainer workflows: grounded PR plans, issue triage, review and release preparation. Calls use deterministic finding IDs, bounded redacted excerpts, structured outputs, least-privilege CI and human approval. Credits support OSS maintenance and evaluation, never unauthorized scanning or autonomous merges.
 
 **Anything else (max 500 characters)**
 
-> FormKind is privacy-friendly by design: deterministic audits run locally and audited HTML is not sent to an AI service. The project documents governance, security response, contribution standards, and an adoption roadmap. Codex assistance is advisory; a human maintainer controls every merge and release.
+> FormKind keeps scans deterministic and local. Its optional agent runs only by explicit command, sends bounded redacted excerpts with response storage disabled, and produces advisory plans rather than commits. The project documents governance, security response and evaluation; a human controls every merge and release.
 
 The application also requires the maintainer's ChatGPT-linked email and OpenAI organization ID; these should never be committed to the repository.

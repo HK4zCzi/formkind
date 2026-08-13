@@ -1,5 +1,9 @@
 import { access, writeFile } from "node:fs/promises";
 import { parseArgs } from "node:util";
+import { runRemediationAgent } from "./agent/orchestrator.js";
+import { OfflineAgentProvider, OpenAIResponsesProvider } from "./agent/provider.js";
+import { type AgentFormat, reportAgentPlan } from "./agent/reporter.js";
+import type { AgentGoal } from "./agent/types.js";
 import { analyzeHtml, combineResults } from "./analyzer.js";
 import { loadBaseline, withoutBaseline, writeBaseline } from "./baseline.js";
 import { loadConfig } from "./config.js";
@@ -7,12 +11,13 @@ import { loadInput } from "./input.js";
 import { profileNames } from "./profiles.js";
 import { type Format, report } from "./reporters.js";
 import { rules } from "./rules.js";
-import type { AuditResult, FormKindConfig, ProfileName, Severity } from "./types.js";
+import type { AuditResult, FormKindConfig, LoadedSource, ProfileName, Severity } from "./types.js";
 
-const version = "0.2.0";
-const commands = new Set(["scan", "rules", "init", "baseline"]);
+const version = "0.3.0";
+const commands = new Set(["scan", "rules", "init", "baseline", "agent"]);
 const validFormats = new Set<Format>(["pretty", "json", "markdown", "sarif"]);
 const validThresholds = new Set(["error", "warning", "never"]);
+const validAgentGoals = new Set<AgentGoal>(["assess", "plan", "review"]);
 
 function help(): string {
   return `FormKind ${version} - global-readiness tooling for forms
@@ -22,6 +27,7 @@ Usage:
   formkind rules [--format pretty|json|markdown]
   formkind init [--profile global|strict|commerce|public-sector]
   formkind baseline <file|directory> [...] [--output .formkind-baseline.json]
+  formkind agent <file|directory> [...] [--goal assess|plan|review]
 
 Scan options:
   --profile <name>                      Policy profile (default: global)
@@ -36,12 +42,23 @@ Scan options:
   --version                             Print the version
   --help                                Show this help
 
+Agent options (explicit opt-in):
+  --goal <assess|plan|review>           Agent outcome (default: plan)
+  --model <name>                        OpenAI Responses model (default: gpt-5.6-terra)
+  --markets <locale,...>                Target locales or markets (default: global)
+  --max-findings <number>               Finding budget sent to specialists (default: 40)
+  --max-specialists <number>            Parallel category specialists (default: 5)
+  --offline                             Build a deterministic plan without an API call
+  --api-base <url>                      OpenAI-compatible Responses API base URL
+
 Supported source: HTML, JSX, TSX, Vue, Svelte, directories, and public URLs.
 
 Examples:
   formkind scan ./src --profile strict
   formkind ./public --baseline .formkind-baseline.json
   formkind baseline ./legacy-app
+  formkind agent ./src --goal plan --markets en-US,ar-SA,ja-JP --format markdown
+  formkind agent ./src --offline --output formkind-plan.md
   formkind rules --format markdown
   formkind init --profile commerce`;
 }
@@ -100,7 +117,7 @@ async function audit(
   inputs: string[],
   maxBytes: number,
   config: FormKindConfig,
-): Promise<AuditResult> {
+): Promise<{ result: AuditResult; sources: LoadedSource[] }> {
   const loaded = (await Promise.all(inputs.map((input) => loadInput(input, maxBytes)))).flat();
   const exclusions = (config.exclude ?? []).map((value) => value.replaceAll("\\", "/"));
   const included = loaded.filter((source) => {
@@ -109,9 +126,12 @@ async function audit(
   });
   if (included.length === 0)
     throw new Error("No supported source files were found after exclusions.");
-  return combineResults(
-    included.map((source) => analyzeHtml(source.html, { file: source.name, config })),
-  );
+  return {
+    result: combineResults(
+      included.map((source) => analyzeHtml(source.html, { file: source.name, config })),
+    ),
+    sources: included,
+  };
 }
 
 async function main(): Promise<void> {
@@ -126,6 +146,13 @@ async function main(): Promise<void> {
       ignore: { type: "string", multiple: true },
       "fail-on": { type: "string", default: "error" },
       "max-size": { type: "string", default: "2000000" },
+      goal: { type: "string", default: "plan" },
+      model: { type: "string" },
+      markets: { type: "string", default: "global" },
+      "max-findings": { type: "string", default: "40" },
+      "max-specialists": { type: "string", default: "5" },
+      offline: { type: "boolean", default: false },
+      "api-base": { type: "string" },
       force: { type: "boolean", default: false },
       help: { type: "boolean", short: "h" },
       version: { type: "boolean", short: "v" },
@@ -185,13 +212,47 @@ async function main(): Promise<void> {
   const config = await loadConfig(values.config);
   if (values.profile) config.profile = values.profile as ProfileName;
   config.ignore = [...(config.ignore ?? []), ...(values.ignore ?? [])];
-  let result = await audit(positionals, maxBytes, config);
+  const audited = await audit(positionals, maxBytes, config);
+  let result = audited.result;
 
   if (command === "baseline") {
     const path = values.output ?? ".formkind-baseline.json";
     await assertWritable(path, values.force);
     const baseline = await writeBaseline(path, result);
     console.log(`Wrote ${baseline.fingerprints.length} finding fingerprints to ${path}.`);
+    return;
+  }
+
+  if (command === "agent") {
+    const goal = values.goal as AgentGoal;
+    if (!validAgentGoals.has(goal)) throw new Error(`Unknown agent goal '${values.goal}'.`);
+    const agentFormat: AgentFormat = values.format === "json" ? "json" : "markdown";
+    if (!new Set(["pretty", "json", "markdown"]).has(values.format)) {
+      throw new Error("Agent output supports Markdown or JSON.");
+    }
+    const maxFindings = Number(values["max-findings"]);
+    const maxSpecialists = Number(values["max-specialists"]);
+    const provider = values.offline
+      ? new OfflineAgentProvider()
+      : new OpenAIResponsesProvider({
+          ...(values.model ? { model: values.model } : {}),
+          ...(values["api-base"] ? { baseUrl: values["api-base"] } : {}),
+        });
+    const plan = await runRemediationAgent({
+      audit: result,
+      sources: audited.sources,
+      provider,
+      goal,
+      markets: values.markets
+        .split(",")
+        .map((market) => market.trim())
+        .filter(Boolean),
+      maxFindings,
+      maxSpecialists,
+    });
+    const output = reportAgentPlan(plan, agentFormat);
+    if (values.output) await writeFile(values.output, output, "utf8");
+    else console.log(output);
     return;
   }
 

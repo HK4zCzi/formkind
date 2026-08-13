@@ -1,0 +1,59 @@
+name: AI remediation plan
+
+on:
+  workflow_dispatch:
+    inputs:
+      path:
+        description: Source path to analyze
+        required: true
+        default: test/fixtures
+        type: string
+      profile:
+        description: FormKind policy profile
+        required: true
+        default: global
+        type: choice
+        options: [global, strict, commerce, public-sector]
+      markets:
+        description: Comma-separated target locales
+        required: true
+        default: global
+        type: string
+      model:
+        description: OpenAI Responses model
+        required: true
+        default: gpt-5.6-terra
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Generate bounded remediation plan
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: >-
+          node dist/cli.js agent "${{ inputs.path }}"
+          --profile "${{ inputs.profile }}"
+          --markets "${{ inputs.markets }}"
+          --model "${{ inputs.model }}"
+          --format markdown
+          --output formkind-agent-plan.md
+      - uses: actions/upload-artifact@v6
+        with:
+          name: formkind-agent-plan
+          path: formkind-agent-plan.md
+          if-no-files-found: error
+          retention-days: 14

@@ -1,4 +1,7 @@
 export { analyzeHtml, combineResults } from "./analyzer.js";
+export { runRemediationAgent } from "./agent/orchestrator.js";
+export { OfflineAgentProvider, OpenAIResponsesProvider } from "./agent/provider.js";
+export { type AgentFormat, reportAgentPlan } from "./agent/reporter.js";
 export { loadBaseline, withoutBaseline, writeBaseline } from "./baseline.js";
 export { loadConfig } from "./config.js";
 export { loadInput } from "./input.js";
@@ -17,3 +20,17 @@ export type {
   RuleCategory,
   Severity,
 } from "./types.js";
+export type {
+  AgentGoal,
+  AgentPlan,
+  AgentPriority,
+  AgentProvider,
+  AgentRisk,
+  AgentWorkstream,
+  RunAgentOptions,
+  SourceExcerpt,
+  SpecialistFinding,
+  SpecialistReport,
+  SpecialistRequest,
+  SynthesisRequest,
+} from "./agent/types.js";

@@ -4,11 +4,11 @@
 [![CodeQL](https://github.com/khanhcamap2020-sudo/formkind/actions/workflows/codeql.yml/badge.svg)](https://github.com/khanhcamap2020-sudo/formkind/actions/workflows/codeql.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
-**Global-readiness tooling for forms, from source code to CI policy.**
+**Global-readiness infrastructure for forms — deterministic detection, agentic remediation, and CI policy.**
 
 FormKind finds product assumptions that reject or confuse international users: ASCII-only names, domestic phone masks, five-digit postal codes, forced states, binary identity fields, ambiguous dates, missing timezones, non-decimal measurements, untranslated pages, and more.
 
-It runs locally and deterministically. Source code and form data are never sent to an AI service.
+The scanner runs locally and deterministically. An optional, explicit AI remediation command can turn verified findings into an engineering plan; normal scans never call an AI service.
 
 ## What it covers
 
@@ -20,7 +20,8 @@ FormKind is more than an HTML linter:
 - **Adoption for legacy apps:** baseline existing findings, then block only new regressions.
 - **Four report formats:** terminal, JSON, Markdown, and SARIF for GitHub code scanning.
 - **Three integration surfaces:** CLI, JavaScript API, and reusable GitHub Action.
-- **Maintainer automation:** optional read-only Codex review, Dependabot, CodeQL, release workflow, and human approval.
+- **AI remediation agent:** parallel domain specialists, structured plans, locale validation matrices, PR drafts, and an offline fallback.
+- **Maintainer automation:** optional Codex review and agent planning, Dependabot, CodeQL, release workflow, and human approval.
 
 ```text
 x src/Checkout.tsx:18:7 ERROR FK010 Postal codes use text fields
@@ -75,6 +76,23 @@ formkind init --profile public-sector
 formkind rules
 formkind rules --format markdown --output RULES.md
 ```
+
+### Turn findings into an AI-assisted remediation program
+
+```bash
+# Explicit opt-in: sends only deterministic findings and redacted source excerpts.
+OPENAI_API_KEY=... formkind agent ./src \
+  --profile commerce \
+  --goal plan \
+  --markets en-US,ar-SA,ja-JP \
+  --format markdown \
+  --output formkind-plan.md
+
+# No network or API key: use the built-in deterministic planner.
+formkind agent ./src --offline --output formkind-plan.md
+```
+
+The agent is a bounded planner, not an autonomous code committer. FormKind first runs the same 27-rule engine used in CI, groups verified findings by domain, asks parallel specialists for remediation and acceptance criteria, and synthesizes a prioritized plan. Every workstream cites stable finding fingerprints and requires human review. See [AI Agent](docs/AI_AGENT.md).
 
 ## Policy profiles
 
@@ -154,13 +172,13 @@ console.log(report(result, "json"));
 
 ## Architecture and growth
 
-The normalized result model separates source adapters, policy, rule evaluation, baselines, and reporters. See [Architecture](docs/ARCHITECTURE.md), the [project-scale adoption guide](docs/ADOPTION.md), and the [Roadmap](ROADMAP.md).
+The normalized result model separates source adapters, policy, rule evaluation, baselines, reporters, and agent orchestration. The agent provider is replaceable and the offline provider makes plans reproducible without network access. See [Architecture](docs/ARCHITECTURE.md), [AI Agent](docs/AI_AGENT.md), the [project-scale adoption guide](docs/ADOPTION.md), and the [Roadmap](ROADMAP.md).
 
 The next major surfaces are a safe browser runner for client-rendered forms, framework-native AST adapters, autofix for low-risk metadata, a VS Code extension, reusable country/locale data checks, and a plugin SDK for community rule packs.
 
 ## Limitations
 
-Source adapters in v0.2 perform static analysis and do not execute JavaScript. Dynamic component properties may require the future browser runner. FormKind is engineering guidance, not legal certification, and should complement testing with people in the markets a product supports.
+Source adapters perform static analysis and do not execute JavaScript. Dynamic component properties may require the future browser runner. AI plans are advisory, may be incomplete, and cannot replace testing with people in the markets a product supports. FormKind is engineering guidance, not legal certification.
 
 ## Community
 

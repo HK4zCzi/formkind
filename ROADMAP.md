@@ -16,14 +16,22 @@
 - Rule catalog and configuration initializer commands.
 - Stable fingerprints in JSON and SARIF.
 
-## 0.3 - framework accuracy
+## 0.3 - AI-assisted remediation
+
+- Explicit opt-in `agent` command with OpenAI Responses and offline providers.
+- Parallel domain specialists grounded in deterministic finding fingerprints.
+- Strict structured plans, market validation matrices, acceptance criteria, and PR drafts.
+- Source excerpt budgeting, basic secret redaction, no autonomous writes, and human review.
+- Manual read-only GitHub workflow that uploads an agent-plan artifact.
+
+## 0.4 - framework accuracy
 
 - Native AST adapters for React, Vue, Svelte, Angular, and templating engines.
 - Source maps across component composition.
 - Safe autofix for `lang`, `dir`, `autocomplete`, input types, and labels.
 - Configuration schema and shareable organization policy packages.
 
-## 0.4 - rendered applications
+## 0.5 - rendered applications
 
 - Isolated browser runner for client-rendered forms and multi-step flows.
 - Country-switch scenarios and locale matrices.
@@ -36,6 +44,7 @@
 - Plugin SDK for community and industry rule packs.
 - Curated country, script, numbering, postal, currency, and timezone datasets.
 - Documentation site with rule rationale and inclusive examples.
+- Public agent evaluation fixtures, provider adapters, prompt versioning, and cost/quality benchmarks.
 - Anonymous opt-in aggregate metrics only if the community requests them; audited source and personal form data will never be collected.
 
 Priorities follow demonstrated user needs and public design proposals.

@@ -4,6 +4,18 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-08-13
+
+### Added
+
+- Explicit opt-in `agent` command for assessment, remediation planning, and pull-request review.
+- Parallel category specialists grounded in deterministic FormKind findings and stable fingerprints.
+- OpenAI Responses API provider with strict structured output, bounded excerpts, secret redaction, response storage disabled, and configurable models.
+- Fully offline deterministic provider implementing the same public `AgentProvider` contract.
+- Markdown and JSON agent-plan reports with workstreams, acceptance criteria, market checks, risks, next actions, and PR drafts.
+- Manual, read-only GitHub Actions workflow that uploads a remediation plan artifact.
+- AI agent architecture, privacy model, provider API, evaluation roadmap, and Codex for Open Source usage documentation.
+
 ## [0.2.0] - 2026-08-13
 
 ### Added
@@ -25,6 +37,7 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - CLI configuration, severity overrides, ignore lists, and CI failure thresholds.
 - Reusable GitHub Action, security scanning, contributor documentation, and maintainer governance.
 
-[Unreleased]: https://github.com/khanhcamap2020-sudo/formkind/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/khanhcamap2020-sudo/formkind/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/khanhcamap2020-sudo/formkind/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/khanhcamap2020-sudo/formkind/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/khanhcamap2020-sudo/formkind/releases/tag/v0.1.0
