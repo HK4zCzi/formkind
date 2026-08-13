@@ -1,0 +1,32 @@
+name: Rule proposal
+description: Propose a deterministic international-form check.
+title: "rule: "
+labels: [rule, discussion]
+body:
+  - type: textarea
+    id: barrier
+    attributes:
+      label: User barrier
+      description: Who is blocked, and how? Do not include personal data.
+    validations:
+      required: true
+  - type: textarea
+    id: examples
+    attributes:
+      label: Failing and inclusive examples
+      render: html
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Authoritative references
+      description: Link internationalization standards or recognized guidance.
+    validations:
+      required: true
+  - type: textarea
+    id: false_positives
+    attributes:
+      label: False-positive risks
+    validations:
+      required: true

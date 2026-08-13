@@ -1,0 +1,39 @@
+name: FormKind audit
+description: Lint web forms for international names, addresses, phone numbers, and locales.
+author: Ho Viet Khanh
+branding:
+  icon: globe
+  color: blue
+inputs:
+  path:
+    description: File or directory to audit.
+    required: false
+    default: .
+  format:
+    description: pretty, json, markdown, or sarif.
+    required: false
+    default: pretty
+  output:
+    description: Optional output file.
+    required: false
+    default: ""
+  fail-on:
+    description: error, warning, or never.
+    required: false
+    default: error
+runs:
+  using: composite
+  steps:
+    - name: Run FormKind
+      shell: bash
+      env:
+        FORMKIND_PATH: ${{ inputs.path }}
+        FORMKIND_FORMAT: ${{ inputs.format }}
+        FORMKIND_OUTPUT: ${{ inputs.output }}
+        FORMKIND_FAIL_ON: ${{ inputs.fail-on }}
+      run: |
+        args=("$FORMKIND_PATH" "--format" "$FORMKIND_FORMAT" "--fail-on" "$FORMKIND_FAIL_ON")
+        if [[ -n "$FORMKIND_OUTPUT" ]]; then
+          args+=("--output" "$FORMKIND_OUTPUT")
+        fi
+        node "$GITHUB_ACTION_PATH/dist/cli.js" "${args[@]}"
