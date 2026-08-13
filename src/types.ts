@@ -1,4 +1,13 @@
 export type Severity = "error" | "warning" | "info";
+export type ProfileName = "global" | "strict" | "commerce" | "public-sector";
+export type RuleCategory =
+  | "document"
+  | "identity"
+  | "address"
+  | "contact"
+  | "date-time"
+  | "localization"
+  | "accessibility";
 
 export interface Location {
   line: number;
@@ -12,6 +21,8 @@ export interface Finding {
   help: string;
   file: string;
   location: Location;
+  fingerprint: string;
+  category: RuleCategory;
 }
 
 export interface AuditResult {
@@ -22,8 +33,10 @@ export interface AuditResult {
 }
 
 export interface FormKindConfig {
+  profile?: ProfileName;
   ignore?: string[];
   severity?: Partial<Record<string, Severity | "off">>;
+  exclude?: string[];
 }
 
 export interface AnalyzeOptions {
@@ -34,4 +47,11 @@ export interface AnalyzeOptions {
 export interface LoadedSource {
   name: string;
   html: string;
+  syntax: "html" | "jsx" | "vue" | "svelte" | "remote";
+}
+
+export interface BaselineFile {
+  version: 1;
+  generatedAt: string;
+  fingerprints: string[];
 }

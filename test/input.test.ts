@@ -1,6 +1,7 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import { loadInput } from "../src/input.js";
 
@@ -43,5 +44,15 @@ describe("loadInput", () => {
 
     await expect(loadInput(text)).rejects.toThrow("Unsupported file");
     await expect(loadInput(html, 4)).rejects.toThrow("exceeds");
+  });
+
+  it("loads TSX and normalizes common JSX attributes", async () => {
+    const source = await loadInput(
+      fileURLToPath(new URL("./fixtures/Checkout.tsx", import.meta.url)),
+    );
+    expect(source[0]?.syntax).toBe("jsx");
+    expect(source[0]?.html).toContain('for="postal"');
+    expect(source[0]?.html).toContain('required="true"');
+    expect(source[0]?.html).toContain('pattern="[0-9]{5}"');
   });
 });

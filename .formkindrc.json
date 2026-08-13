@@ -1,4 +1,6 @@
 {
+  "profile": "global",
+  "exclude": ["node_modules/", "dist/", "coverage/"],
   "severity": {
     "FK008": "warning"
   }

@@ -5,7 +5,7 @@ Thank you for helping forms welcome more people.
 ## Before opening a change
 
 - Search existing issues and discussions.
-- For a new rule, open a rule proposal first. Include failing and inclusive HTML examples, expected severity, false-positive risks, and at least one authoritative internationalization reference.
+- For a new rule, open a rule proposal first. Include failing and inclusive source examples, expected profile behavior, false-positive risks, and at least one authoritative internationalization reference.
 - Keep rules deterministic. A rule must not infer nationality, ethnicity, gender, or other sensitive traits.
 
 ## Local development
@@ -16,10 +16,10 @@ Requirements: Node.js 20 or later and npm.
 npm install
 npm run check
 npm run build
-node dist/cli.js test/fixtures/problematic.html --fail-on never
+node dist/cli.js scan test/fixtures/problematic.html --fail-on never
 ```
 
-Add tests for every behavior change. A new rule should include a failing fixture, an inclusive fixture, source-location assertions, and configuration coverage.
+Add focused tests for behavior changes. A new rule needs at least one failing and one inclusive example. Adapter changes should cover source location and the framework syntax they introduce.
 
 ## Pull requests
 

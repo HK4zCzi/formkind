@@ -31,7 +31,7 @@ describe("analyzeHtml", () => {
       "<html><body><input name='name' pattern='[A-Za-z]+'></body></html>",
       {
         config: {
-          ignore: ["FK001"],
+          ignore: ["FK001", "FK023"],
           severity: { FK002: "warning", FK008: "off" },
         },
       },

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 // src/cli.ts
-import { writeFile } from "fs/promises";
+import { access, writeFile as writeFile2 } from "fs/promises";
 import { parseArgs } from "util";
 
 // node_modules/parse5/dist/common/unicode.js
@@ -7887,6 +7887,52 @@ function parse(html, options) {
   return Parser.parse(html, options);
 }
 
+// src/profiles.ts
+var profiles = {
+  global: {},
+  strict: {
+    FK001: "error",
+    FK003: "error",
+    FK006: "error",
+    FK008: "warning",
+    FK009: "error",
+    FK012: "error",
+    FK017: "error",
+    FK018: "error",
+    FK023: "warning"
+  },
+  commerce: {
+    FK004: "error",
+    FK005: "error",
+    FK006: "error",
+    FK009: "error",
+    FK010: "error",
+    FK012: "error",
+    FK013: "error",
+    FK017: "error",
+    FK020: "warning",
+    FK027: "error"
+  },
+  "public-sector": {
+    FK001: "error",
+    FK002: "error",
+    FK003: "error",
+    FK008: "warning",
+    FK014: "error",
+    FK015: "error",
+    FK016: "error",
+    FK018: "error",
+    FK019: "error",
+    FK023: "error",
+    FK025: "error"
+  }
+};
+function applyProfile(config) {
+  const profile = config.profile ?? "global";
+  return { ...config, profile, severity: { ...profiles[profile], ...config.severity } };
+}
+var profileNames = Object.keys(profiles);
+
 // src/rules.ts
 function getAttribute(element, name) {
   return element.attrs.find((attribute) => attribute.name.toLowerCase() === name)?.value;
@@ -7922,9 +7968,19 @@ function isContactField(element, labels) {
 function inputElements(context) {
   return context.elements.filter((element) => element.tagName === "input");
 }
+function fieldMatches(element, context, pattern) {
+  return pattern.test(fieldIdentity(element, context.labels));
+}
+function optionCount(element) {
+  if (!("childNodes" in element)) return 0;
+  return element.childNodes.filter(
+    (child) => "tagName" in child && child.tagName === "option"
+  ).length;
+}
 var rules = [
   {
     id: "FK001",
+    category: "document",
     severity: "warning",
     description: "Document language is declared",
     help: "Set a valid lang attribute on the html element so browsers and assistive tools know the page language.",
@@ -7939,6 +7995,7 @@ var rules = [
   },
   {
     id: "FK002",
+    category: "identity",
     severity: "error",
     description: "Personal names accept Unicode letters",
     help: "Remove ASCII-only patterns. Human names can contain Unicode letters, spaces, apostrophes, and hyphens.",
@@ -7951,6 +8008,7 @@ var rules = [
   },
   {
     id: "FK003",
+    category: "identity",
     severity: "warning",
     description: "Personal name fields are not artificially short",
     help: "Allow at least 50 characters for each name field, and avoid maxlength when storage supports longer values.",
@@ -7960,6 +8018,7 @@ var rules = [
   },
   {
     id: "FK004",
+    category: "contact",
     severity: "error",
     description: "Telephone fields allow international-length numbers",
     help: "Allow at least 16 characters for a leading plus sign and up to 15 E.164 digits; allow more if formatting characters are accepted.",
@@ -7969,6 +8028,7 @@ var rules = [
   },
   {
     id: "FK005",
+    category: "contact",
     severity: "error",
     description: "Telephone patterns allow a leading country code",
     help: "Accept a leading + and country code. Normalize and validate phone numbers after input instead of enforcing a domestic shape in HTML.",
@@ -7981,6 +8041,7 @@ var rules = [
   },
   {
     id: "FK006",
+    category: "address",
     severity: "warning",
     description: "Postal labels are not country-specific",
     help: "Prefer 'Postal code' over 'ZIP code', or change the label when the selected country changes.",
@@ -7990,6 +8051,7 @@ var rules = [
   },
   {
     id: "FK007",
+    category: "date-time",
     severity: "warning",
     description: "Dates avoid ambiguous locale-specific placeholders",
     help: "Use input type=date or a localized date picker with an unambiguous example and machine-readable value.",
@@ -8003,6 +8065,7 @@ var rules = [
   },
   {
     id: "FK008",
+    category: "accessibility",
     severity: "info",
     description: "Contact fields expose autocomplete tokens",
     help: "Add a standard autocomplete token such as name, email, tel, street-address, address-level2, postal-code, or country-name.",
@@ -8012,6 +8075,7 @@ var rules = [
   },
   {
     id: "FK009",
+    category: "address",
     severity: "warning",
     description: "Required region fields have country context",
     help: "Do not require a state, province, or region unless the selected country needs it; provide a country field and adapt the form.",
@@ -8025,6 +8089,218 @@ var rules = [
           fieldIdentity(element, context.labels)
         )
       ).map((element) => context.finding(this, element));
+    }
+  },
+  {
+    id: "FK010",
+    category: "address",
+    severity: "error",
+    description: "Postal codes use text fields",
+    help: "Use type=text and an appropriate autocomplete token. Postal codes can start with zero and contain letters, spaces, or hyphens.",
+    check(context) {
+      return inputElements(context).filter((element) => fieldMatches(element, context, /\b(postal|postcode|zip)\b/)).filter((element) => ["number", "tel"].includes(getAttribute(element, "type") ?? "")).map((element) => context.finding(this, element));
+    }
+  },
+  {
+    id: "FK011",
+    category: "contact",
+    severity: "warning",
+    description: "Phone numbers use telephone fields",
+    help: "Use type=tel instead of number. Telephone identifiers are not quantities and may contain a leading plus sign or formatting characters.",
+    check(context) {
+      return inputElements(context).filter((element) => fieldMatches(element, context, /\b(phone|telephone|mobile|tel)\b/)).filter((element) => getAttribute(element, "type") === "number").map((element) => context.finding(this, element));
+    }
+  },
+  {
+    id: "FK012",
+    category: "address",
+    severity: "warning",
+    description: "Address fields allow long international addresses",
+    help: "Allow at least 100 characters for street and delivery-address fields; international formats vary substantially.",
+    check(context) {
+      return inputElements(context).filter((element) => fieldMatches(element, context, /\b(address|street)\b/)).filter((element) => Number(getAttribute(element, "maxlength")) > 0).filter((element) => Number(getAttribute(element, "maxlength")) < 100).map((element) => context.finding(this, element));
+    }
+  },
+  {
+    id: "FK013",
+    category: "address",
+    severity: "error",
+    description: "Secondary address lines are optional",
+    help: "Do not require apartment, suite, unit, building, or address-line2; these concepts do not apply to every address.",
+    check(context) {
+      return inputElements(context).filter((element) => hasAttribute(element, "required")).filter(
+        (element) => fieldMatches(element, context, /\b(address.?2|line.?2|apartment|suite|unit|building)\b/)
+      ).map((element) => context.finding(this, element));
+    }
+  },
+  {
+    id: "FK014",
+    category: "identity",
+    severity: "error",
+    description: "Middle names are optional",
+    help: "Do not require a middle name or initial. Many people do not have one, while other naming systems do not use this structure.",
+    check(context) {
+      return inputElements(context).filter((element) => hasAttribute(element, "required")).filter((element) => fieldMatches(element, context, /\bmiddle([\s_-]?(name|initial))?\b/)).map((element) => context.finding(this, element));
+    }
+  },
+  {
+    id: "FK015",
+    category: "identity",
+    severity: "warning",
+    description: "Honorifics and titles are optional",
+    help: "Do not require title, salutation, honorific, Mr, Ms, or Mrs. Legal and cultural conventions vary.",
+    check(context) {
+      return context.elements.filter((element) => element.tagName === "input" || element.tagName === "select").filter((element) => hasAttribute(element, "required")).filter((element) => fieldMatches(element, context, /\b(title|salutation|honorific)\b/)).map((element) => context.finding(this, element));
+    }
+  },
+  {
+    id: "FK016",
+    category: "identity",
+    severity: "warning",
+    description: "Gender fields are not forced into a binary choice",
+    help: "When gender is genuinely required, explain why and provide inclusive choices plus self-description or prefer-not-to-say options.",
+    check(context) {
+      return context.elements.filter((element) => element.tagName === "select").filter((element) => hasAttribute(element, "required")).filter((element) => fieldMatches(element, context, /\b(gender|sex)\b/)).filter((element) => optionCount(element) > 0 && optionCount(element) <= 3).map((element) => context.finding(this, element));
+    }
+  },
+  {
+    id: "FK017",
+    category: "address",
+    severity: "warning",
+    description: "Country selectors are not tiny hard-coded lists",
+    help: "Use a maintained country/territory data source or clearly state regional availability. A short static list often excludes valid users silently.",
+    check(context) {
+      return context.elements.filter((element) => element.tagName === "select").filter((element) => hasAttribute(element, "required")).filter((element) => fieldMatches(element, context, /\bcountry\b/)).filter((element) => optionCount(element) > 1 && optionCount(element) < 20).map((element) => context.finding(this, element));
+    }
+  },
+  {
+    id: "FK018",
+    category: "document",
+    severity: "warning",
+    description: "Right-to-left documents declare direction",
+    help: "Set dir=rtl for Arabic, Hebrew, Persian, Urdu, and other RTL documents, or manage direction dynamically at the correct container.",
+    check(context) {
+      const html = context.elements.find((element) => element.tagName === "html");
+      if (!html) return [];
+      const lang = getAttribute(html, "lang")?.toLowerCase() ?? "";
+      const rtl = /^(ar|fa|he|iw|ps|ur|yi)(-|$)/.test(lang);
+      return rtl && getAttribute(html, "dir") !== "rtl" ? [context.finding(this, html)] : [];
+    }
+  },
+  {
+    id: "FK019",
+    category: "document",
+    severity: "warning",
+    description: "Language tags use BCP 47 style",
+    help: "Use language tags such as en-US or pt-BR, not underscore forms such as en_US.",
+    check(context) {
+      const html = context.elements.find((element) => element.tagName === "html");
+      return html && (getAttribute(html, "lang") ?? "").includes("_") ? [context.finding(this, html)] : [];
+    }
+  },
+  {
+    id: "FK020",
+    category: "date-time",
+    severity: "warning",
+    description: "Local date-time fields provide timezone context",
+    help: "A datetime-local value has no timezone. Display the assumed zone or collect an IANA timezone when the instant matters.",
+    check(context) {
+      const hasTimezone = context.elements.some(
+        (element) => fieldMatches(element, context, /\b(time.?zone|timezone|tz)\b/)
+      );
+      if (hasTimezone) return [];
+      return inputElements(context).filter((element) => getAttribute(element, "type") === "datetime-local").map((element) => context.finding(this, element));
+    }
+  },
+  {
+    id: "FK021",
+    category: "localization",
+    severity: "warning",
+    description: "Whole pages are not excluded from translation",
+    help: "Avoid translate=no on html or body. Apply it only to brand names, identifiers, code, or other intentionally invariant fragments.",
+    check(context) {
+      return context.elements.filter((element) => element.tagName === "html" || element.tagName === "body").filter((element) => getAttribute(element, "translate") === "no").map((element) => context.finding(this, element));
+    }
+  },
+  {
+    id: "FK022",
+    category: "contact",
+    severity: "warning",
+    description: "Email fields use email semantics",
+    help: "Use type=email and autocomplete=email for email fields so keyboards, autofill, and validation can adapt.",
+    check(context) {
+      return inputElements(context).filter((element) => fieldMatches(element, context, /\be-?mail\b/)).filter((element) => (getAttribute(element, "type") ?? "text") !== "email").map((element) => context.finding(this, element));
+    }
+  },
+  {
+    id: "FK023",
+    category: "accessibility",
+    severity: "info",
+    description: "Form controls have persistent labels",
+    help: "Use a label, aria-label, or aria-labelledby. Placeholder text disappears during entry and is difficult to translate as a label substitute.",
+    check(context) {
+      return context.elements.filter(
+        (element) => element.tagName === "input" || element.tagName === "select" || element.tagName === "textarea"
+      ).filter((element) => getAttribute(element, "type") !== "hidden").filter((element) => {
+        const id = getAttribute(element, "id");
+        return !getAttribute(element, "aria-label") && !getAttribute(element, "aria-labelledby") && !(id && context.labels.has(id));
+      }).map((element) => context.finding(this, element));
+    }
+  },
+  {
+    id: "FK024",
+    category: "localization",
+    severity: "warning",
+    description: "Decimal fields do not assume whole numbers",
+    help: "For amount, price, weight, or measurement fields, use step=any or an appropriate decimal step and localize presentation separately.",
+    check(context) {
+      return inputElements(context).filter((element) => getAttribute(element, "type") === "number").filter(
+        (element) => fieldMatches(element, context, /\b(amount|price|weight|height|width|length|rate)\b/)
+      ).filter((element) => {
+        const step = getAttribute(element, "step");
+        return !step || step === "1";
+      }).map((element) => context.finding(this, element));
+    }
+  },
+  {
+    id: "FK025",
+    category: "identity",
+    severity: "warning",
+    description: "Required split names allow mononyms",
+    help: "People may have a single legal name. Provide a full-name path or make family-name optional when both given and family names are collected.",
+    check(context) {
+      const requiredGiven = inputElements(context).find(
+        (element) => hasAttribute(element, "required") && fieldMatches(element, context, /\b(given.?name|first.?name)\b/)
+      );
+      const requiredFamily = inputElements(context).find(
+        (element) => hasAttribute(element, "required") && fieldMatches(element, context, /\b(family.?name|last.?name|surname)\b/)
+      );
+      const fullName = inputElements(context).some(
+        (element) => fieldMatches(element, context, /\bfull.?name\b/)
+      );
+      return requiredGiven && requiredFamily && !fullName ? [context.finding(this, requiredFamily)] : [];
+    }
+  },
+  {
+    id: "FK026",
+    category: "contact",
+    severity: "warning",
+    description: "Telephone examples do not imply one country",
+    help: "Use an international example or adapt examples after country selection; fixed +1 or (555) placeholders imply North America.",
+    check(context) {
+      return inputElements(context).filter((element) => getAttribute(element, "type") === "tel").filter(
+        (element) => /(?:\+?1[\s.-]|\(555\))/.test(getAttribute(element, "placeholder") ?? "")
+      ).map((element) => context.finding(this, element));
+    }
+  },
+  {
+    id: "FK027",
+    category: "address",
+    severity: "error",
+    description: "Postal patterns are not fixed to five digits",
+    help: "Do not enforce a US-style five-digit pattern globally. Validate postal codes after the user selects a country.",
+    check(context) {
+      return inputElements(context).filter((element) => fieldMatches(element, context, /\b(postal|postcode|zip)\b/)).filter((element) => /(?:\\d|\[0-9\])\{5\}/.test(getAttribute(element, "pattern") ?? "")).map((element) => context.finding(this, element));
     }
   }
 ];
@@ -8062,7 +8338,18 @@ function calculateScore(findings) {
   return Math.max(0, 100 - findings.reduce((total, finding) => total + cost[finding.severity], 0));
 }
 function configuredSeverity(rule, options) {
-  return options.config?.severity?.[rule.id] ?? rule.severity;
+  return applyProfile(options.config ?? {}).severity?.[rule.id] ?? rule.severity;
+}
+function fingerprint(ruleId, file, element, message) {
+  const attributes = [...element.attrs].filter((attribute) => attribute.name !== "value").sort((left, right) => left.name.localeCompare(right.name)).map((attribute) => `${attribute.name}=${attribute.value}`).join(";");
+  const fallback = attributes || `line=${locationOf(element).line}`;
+  const value = `${ruleId}|${file.replaceAll("\\", "/").replace(/^\.\//, "")}|${element.tagName}|${fallback}|${message}`;
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `fk-${(hash >>> 0).toString(16).padStart(8, "0")}`;
 }
 function analyzeHtml(html, options = {}) {
   const file = options.file ?? "<inline>";
@@ -8078,14 +8365,20 @@ function analyzeHtml(html, options = {}) {
       file,
       elements,
       labels,
-      finding: (activeRule, element, message) => ({
-        ruleId: activeRule.id,
-        severity,
-        message: message ?? activeRule.description,
-        help: activeRule.help,
-        file,
-        location: locationOf(element)
-      })
+      finding: (activeRule, element, message) => {
+        const location = locationOf(element);
+        const finalMessage = message ?? activeRule.description;
+        return {
+          ruleId: activeRule.id,
+          severity,
+          message: finalMessage,
+          help: activeRule.help,
+          file,
+          location,
+          fingerprint: fingerprint(activeRule.id, file, element, finalMessage),
+          category: activeRule.category
+        };
+      }
     });
     findings.push(...results);
   }
@@ -8113,14 +8406,52 @@ function combineResults(results) {
   };
 }
 
+// src/baseline.ts
+import { readFile, writeFile } from "fs/promises";
+async function writeBaseline(path, result) {
+  const baseline = {
+    version: 1,
+    generatedAt: (/* @__PURE__ */ new Date()).toISOString(),
+    fingerprints: [...new Set(result.findings.map((finding) => finding.fingerprint))].sort()
+  };
+  await writeFile(path, `${JSON.stringify(baseline, null, 2)}
+`, "utf8");
+  return baseline;
+}
+async function loadBaseline(path) {
+  const parsed = JSON.parse(await readFile(path, "utf8"));
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("FormKind baseline must be a JSON object.");
+  }
+  const baseline = parsed;
+  if (baseline.version !== 1 || !Array.isArray(baseline.fingerprints)) {
+    throw new Error("Unsupported or invalid FormKind baseline.");
+  }
+  return baseline;
+}
+function withoutBaseline(result, baseline) {
+  const known = new Set(baseline.fingerprints);
+  const findings = result.findings.filter((finding) => !known.has(finding.fingerprint));
+  const summary = { error: 0, warning: 0, info: 0 };
+  for (const finding of findings) summary[finding.severity] += 1;
+  const score = Math.max(
+    0,
+    100 - findings.reduce((total, finding) => {
+      const cost = { error: 15, warning: 7, info: 2 };
+      return total + cost[finding.severity];
+    }, 0)
+  );
+  return { ...result, findings, summary, score };
+}
+
 // src/config.ts
-import { readFile } from "fs/promises";
+import { readFile as readFile2 } from "fs/promises";
 import { resolve } from "path";
 var allowedSeverities = /* @__PURE__ */ new Set(["error", "warning", "info", "off"]);
 async function loadConfig(path = ".formkindrc.json") {
   let raw;
   try {
-    raw = await readFile(resolve(path), "utf8");
+    raw = await readFile2(resolve(path), "utf8");
   } catch (error) {
     const code = error.code;
     if (code === "ENOENT" && path === ".formkindrc.json") return {};
@@ -8131,6 +8462,9 @@ async function loadConfig(path = ".formkindrc.json") {
     throw new Error("FormKind config must be a JSON object.");
   }
   const config = parsed;
+  if (config.profile && !profileNames.includes(config.profile)) {
+    throw new Error(`Unknown FormKind profile '${config.profile}'.`);
+  }
   if (config.ignore && (!Array.isArray(config.ignore) || config.ignore.some((id) => typeof id !== "string"))) {
     throw new Error("FormKind config 'ignore' must be an array of rule IDs.");
   }
@@ -8141,14 +8475,50 @@ async function loadConfig(path = ".formkindrc.json") {
       }
     }
   }
+  if (config.exclude && (!Array.isArray(config.exclude) || config.exclude.some((item) => typeof item !== "string"))) {
+    throw new Error("FormKind config 'exclude' must be an array of path fragments.");
+  }
   return config;
 }
 
 // src/input.ts
-import { readdir, readFile as readFile2, stat } from "fs/promises";
+import { readdir, readFile as readFile3, stat } from "fs/promises";
 import { extname, join, relative, resolve as resolve2 } from "path";
-var supportedExtensions = /* @__PURE__ */ new Set([".html", ".htm"]);
-var ignoredDirectories = /* @__PURE__ */ new Set([".git", "node_modules", "dist", "coverage", ".next"]);
+var supportedExtensions = /* @__PURE__ */ new Set([".html", ".htm", ".jsx", ".tsx", ".vue", ".svelte"]);
+var ignoredDirectories = /* @__PURE__ */ new Set([
+  ".git",
+  "node_modules",
+  "dist",
+  "coverage",
+  ".next",
+  ".nuxt",
+  ".svelte-kit",
+  "vendor"
+]);
+function syntaxFor(path) {
+  const extension = extname(path).toLowerCase();
+  if (extension === ".jsx" || extension === ".tsx") return "jsx";
+  if (extension === ".vue") return "vue";
+  if (extension === ".svelte") return "svelte";
+  return "html";
+}
+function prepareMarkup(source, syntax) {
+  if (syntax === "html" || syntax === "remote") return source;
+  let markup = source;
+  if (syntax === "vue") {
+    const template = source.match(/<template(?:\s[^>]*)?>([\s\S]*?)<\/template>/i);
+    if (template?.[1]) {
+      const prefixLines = source.slice(0, template.index ?? 0).split("\n").length;
+      markup = `${"\n".repeat(prefixLines)}${template[1]}`;
+    }
+  }
+  return markup.replaceAll("htmlFor=", "for=").replace(/\b(maxLength|minLength|inputMode|autoComplete)=/g, (name) => name.toLowerCase()).replace(/=\{\s*(true|false|\d+)\s*\}/g, '="$1"').replace(/=\{[^{}\n]*\}/g, '=""').replace(/<([a-z][\w:-]*)([^>]*)\/>/gi, "<$1$2></$1>");
+}
+async function sourceFromFile(path, name) {
+  const syntax = syntaxFor(path);
+  const source = await readFile3(path, "utf8");
+  return { name, html: prepareMarkup(source, syntax), syntax };
+}
 async function readDirectory(directory, maxBytes) {
   const sources = [];
   const entries = await readdir(directory, { withFileTypes: true });
@@ -8160,10 +8530,7 @@ async function readDirectory(directory, maxBytes) {
     if (entry.isFile() && supportedExtensions.has(extname(entry.name).toLowerCase())) {
       const details = await stat(path);
       if (details.size > maxBytes) throw new Error(`${path} exceeds the ${maxBytes}-byte limit.`);
-      sources.push({
-        name: relative(process.cwd(), path) || entry.name,
-        html: await readFile2(path, "utf8")
-      });
+      sources.push(await sourceFromFile(path, relative(process.cwd(), path) || entry.name));
     }
   }
   return sources;
@@ -8183,7 +8550,7 @@ async function readUrl(url, maxBytes) {
   const html = await response.text();
   if (Buffer.byteLength(html) > maxBytes)
     throw new Error(`${url} exceeds the ${maxBytes}-byte limit.`);
-  return { name: url, html };
+  return { name: url, html, syntax: "remote" };
 }
 async function loadInput(input, maxBytes = 2e6) {
   if (/^https?:\/\//i.test(input)) return [await readUrl(input, maxBytes)];
@@ -8191,10 +8558,12 @@ async function loadInput(input, maxBytes = 2e6) {
   const details = await stat(path);
   if (details.isDirectory()) return readDirectory(path, maxBytes);
   if (!supportedExtensions.has(extname(path).toLowerCase())) {
-    throw new Error(`Unsupported file '${input}'. FormKind accepts .html and .htm files.`);
+    throw new Error(
+      `Unsupported file '${input}'. FormKind accepts HTML, JSX, TSX, Vue, and Svelte files.`
+    );
   }
   if (details.size > maxBytes) throw new Error(`${input} exceeds the ${maxBytes}-byte limit.`);
-  return [{ name: relative(process.cwd(), path) || input, html: await readFile2(path, "utf8") }];
+  return [await sourceFromFile(path, relative(process.cwd(), path) || input)];
 }
 
 // src/reporters.ts
@@ -8258,6 +8627,8 @@ function sarif(result) {
             ruleId: finding.ruleId,
             level: levels[finding.severity],
             message: { text: `${finding.message} ${finding.help}` },
+            partialFingerprints: { primaryLocationLineHash: finding.fingerprint },
+            properties: { category: finding.category },
             locations: [
               {
                 physicalLocation: {
@@ -8285,45 +8656,111 @@ function report(result, format) {
 }
 
 // src/cli.ts
-var version = "0.1.0";
+var version = "0.2.0";
+var commands = /* @__PURE__ */ new Set(["scan", "rules", "init", "baseline"]);
 var validFormats = /* @__PURE__ */ new Set(["pretty", "json", "markdown", "sarif"]);
 var validThresholds = /* @__PURE__ */ new Set(["error", "warning", "never"]);
 function help() {
-  return `FormKind ${version} - make web forms work for everyone
+  return `FormKind ${version} - global-readiness tooling for forms
 
 Usage:
-  formkind <file|directory|url> [...] [options]
+  formkind [scan] <file|directory|url> [...] [options]
+  formkind rules [--format pretty|json|markdown]
+  formkind init [--profile global|strict|commerce|public-sector]
+  formkind baseline <file|directory> [...] [--output .formkind-baseline.json]
 
-Options:
-  --format <pretty|json|markdown|sarif>  Output format (default: pretty)
+Scan options:
+  --profile <name>                      Policy profile (default: global)
+  --format <pretty|json|markdown|sarif> Output format (default: pretty)
   --output <path>                       Write the report to a file
   --config <path>                       Config file (default: .formkindrc.json)
+  --baseline <path>                     Report only findings absent from a baseline
   --ignore <rule>                       Ignore a rule; repeatable
-  --fail-on <error|warning|never>        Exit 1 at this severity (default: error)
+  --fail-on <error|warning|never>       Exit 1 at this severity (default: error)
   --max-size <bytes>                    Maximum bytes per input (default: 2000000)
+  --force                               Allow init/baseline to overwrite its output
   --version                             Print the version
   --help                                Show this help
 
+Supported source: HTML, JSX, TSX, Vue, Svelte, directories, and public URLs.
+
 Examples:
-  formkind ./public
-  formkind https://example.com/signup --format markdown
-  formkind index.html --format sarif --output formkind.sarif`;
+  formkind scan ./src --profile strict
+  formkind ./public --baseline .formkind-baseline.json
+  formkind baseline ./legacy-app
+  formkind rules --format markdown
+  formkind init --profile commerce`;
 }
 function reachesThreshold(summary, threshold) {
   if (threshold === "never") return false;
   if (threshold === "warning") return summary.error > 0 || summary.warning > 0;
   return summary.error > 0;
 }
+async function assertWritable(path, force) {
+  if (force) return;
+  try {
+    await access(path);
+    throw new Error(`${path} already exists. Pass --force to replace it.`);
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+  }
+}
+function rulesReport(format) {
+  if (format === "json") {
+    return JSON.stringify(
+      rules.map(({ id, category, severity, description, help: help2 }) => ({
+        id,
+        category,
+        severity,
+        description,
+        help: help2
+      })),
+      null,
+      2
+    );
+  }
+  if (format === "markdown") {
+    return [
+      "# FormKind rule catalog",
+      "",
+      "| Rule | Category | Default | Check |",
+      "| --- | --- | --- | --- |",
+      ...rules.map(
+        (rule) => `| ${rule.id} | ${rule.category} | ${rule.severity} | ${rule.description} |`
+      ),
+      ""
+    ].join("\n");
+  }
+  return rules.map(
+    (rule) => `${rule.id.padEnd(6)} ${rule.severity.padEnd(7)} ${rule.category.padEnd(14)} ${rule.description}`
+  ).join("\n");
+}
+async function audit(inputs, maxBytes, config) {
+  const loaded = (await Promise.all(inputs.map((input) => loadInput(input, maxBytes)))).flat();
+  const exclusions = (config.exclude ?? []).map((value) => value.replaceAll("\\", "/"));
+  const included = loaded.filter((source) => {
+    const name = source.name.replaceAll("\\", "/");
+    return !exclusions.some((excluded) => name.includes(excluded));
+  });
+  if (included.length === 0)
+    throw new Error("No supported source files were found after exclusions.");
+  return combineResults(
+    included.map((source) => analyzeHtml(source.html, { file: source.name, config }))
+  );
+}
 async function main() {
   const { values, positionals } = parseArgs({
     allowPositionals: true,
     options: {
+      profile: { type: "string" },
       format: { type: "string", default: "pretty" },
       output: { type: "string", short: "o" },
       config: { type: "string" },
+      baseline: { type: "string" },
       ignore: { type: "string", multiple: true },
       "fail-on": { type: "string", default: "error" },
       "max-size": { type: "string", default: "2000000" },
+      force: { type: "boolean", default: false },
       help: { type: "boolean", short: "h" },
       version: { type: "boolean", short: "v" }
     }
@@ -8332,27 +8769,63 @@ async function main() {
     console.log(version);
     return;
   }
-  if (values.help || positionals.length === 0) {
+  if (values.help) {
     console.log(help());
-    process.exitCode = positionals.length === 0 && !values.help ? 2 : 0;
     return;
   }
+  const command = commands.has(positionals[0] ?? "") ? positionals.shift() : "scan";
   const format = values.format;
   if (!validFormats.has(format)) throw new Error(`Unknown format '${values.format}'.`);
-  if (!validThresholds.has(values["fail-on"]))
+  if (!validThresholds.has(values["fail-on"])) {
     throw new Error(`Unknown fail threshold '${values["fail-on"]}'.`);
+  }
+  if (values.profile && !profileNames.includes(values.profile)) {
+    throw new Error(`Unknown profile '${values.profile}'.`);
+  }
+  if (command === "rules") {
+    if (format === "sarif") throw new Error("The rule catalog supports pretty, JSON, or Markdown.");
+    const output2 = rulesReport(format);
+    if (values.output) await writeFile2(values.output, output2, "utf8");
+    else console.log(output2);
+    return;
+  }
+  if (command === "init") {
+    const path = values.output ?? ".formkindrc.json";
+    await assertWritable(path, values.force);
+    const config2 = {
+      profile: values.profile ?? "global",
+      exclude: ["node_modules/", "dist/", "coverage/"],
+      ignore: [],
+      severity: { FK008: "warning" }
+    };
+    await writeFile2(path, `${JSON.stringify(config2, null, 2)}
+`, "utf8");
+    console.log(`Created ${path} with the '${config2.profile}' profile.`);
+    return;
+  }
+  if (positionals.length === 0) {
+    console.log(help());
+    process.exitCode = 2;
+    return;
+  }
   const maxBytes = Number(values["max-size"]);
-  if (!Number.isSafeInteger(maxBytes) || maxBytes < 1)
+  if (!Number.isSafeInteger(maxBytes) || maxBytes < 1) {
     throw new Error("--max-size must be a positive integer.");
+  }
   const config = await loadConfig(values.config);
+  if (values.profile) config.profile = values.profile;
   config.ignore = [...config.ignore ?? [], ...values.ignore ?? []];
-  const loaded = (await Promise.all(positionals.map((input) => loadInput(input, maxBytes)))).flat();
-  if (loaded.length === 0) throw new Error("No .html or .htm files were found.");
-  const result = combineResults(
-    loaded.map((source) => analyzeHtml(source.html, { file: source.name, config }))
-  );
+  let result = await audit(positionals, maxBytes, config);
+  if (command === "baseline") {
+    const path = values.output ?? ".formkind-baseline.json";
+    await assertWritable(path, values.force);
+    const baseline = await writeBaseline(path, result);
+    console.log(`Wrote ${baseline.fingerprints.length} finding fingerprints to ${path}.`);
+    return;
+  }
+  if (values.baseline) result = withoutBaseline(result, await loadBaseline(values.baseline));
   const output = report(result, format);
-  if (values.output) await writeFile(values.output, output, "utf8");
+  if (values.output) await writeFile2(values.output, output, "utf8");
   else console.log(output);
   if (reachesThreshold(result.summary, values["fail-on"])) process.exitCode = 1;
 }
