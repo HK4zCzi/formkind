@@ -65,7 +65,9 @@ async function readDirectory(directory: string, maxBytes: number): Promise<Loade
 
 async function readUrl(url: string, maxBytes: number): Promise<LoadedSource> {
   const response = await fetch(url, {
-    headers: { "user-agent": "formkind/0.1 (+https://github.com/HK4zCzi/formkind)" },
+    headers: {
+      "user-agent": "formkind/0.2 (+https://github.com/khanhcamap2020-sudo/formkind)",
+    },
     signal: AbortSignal.timeout(10_000),
   });
   if (!response.ok) throw new Error(`${url} returned HTTP ${response.status}.`);
