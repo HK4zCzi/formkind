@@ -16,7 +16,7 @@ jobs:
     outputs:
       final_message: ${{ steps.codex.outputs.final-message }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: refs/pull/${{ inputs.pull_request }}/merge
           fetch-depth: 0
