@@ -57,7 +57,7 @@ jobs:
   formkind:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: HK4zCzi/formkind@v0.1.0
         with:
           path: ./public
