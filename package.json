@@ -1,0 +1,62 @@
+{
+  "name": "formkind",
+  "version": "0.1.0",
+  "description": "Lint web forms for international names, addresses, phone numbers, and locales.",
+  "type": "module",
+  "bin": {
+    "formkind": "dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "check": "npm run typecheck && npm run lint && npm test",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "test": "vitest run --coverage",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "prepack": "npm run build"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "i18n",
+    "internationalization",
+    "forms",
+    "lint",
+    "accessibility",
+    "github-action"
+  ],
+  "author": "Ho Viet Khanh",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HK4zCzi/formkind.git"
+  },
+  "bugs": {
+    "url": "https://github.com/HK4zCzi/formkind/issues"
+  },
+  "homepage": "https://github.com/HK4zCzi/formkind#readme",
+  "dependencies": {
+    "parse5": "^8.0.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.2.0",
+    "@types/node": "^24.0.0",
+    "@vitest/coverage-v8": "^3.2.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  }
+}

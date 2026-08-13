@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+  <body>
+    <form>
+      <label for="full-name">Full name</label>
+      <input id="full-name" name="full_name" pattern="[A-Za-z ]+" maxlength="30" />
+
+      <label for="phone">Phone</label>
+      <input id="phone" name="phone" type="tel" pattern="[0-9]{10}" maxlength="10" />
+
+      <label for="zip">ZIP code</label>
+      <input id="zip" name="zip" />
+
+      <label for="birthday">Birthday</label>
+      <input id="birthday" name="birthday" placeholder="MM/DD/YYYY" />
+
+      <label for="state">State</label>
+      <input id="state" name="state" required />
+    </form>
+  </body>
+</html>

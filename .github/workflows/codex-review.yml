@@ -1,0 +1,54 @@
+name: Maintainer Codex review
+
+on:
+  workflow_dispatch:
+    inputs:
+      pull_request:
+        description: Pull request number to review
+        required: true
+        type: number
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      final_message: ${{ steps.codex.outputs.final-message }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: refs/pull/${{ inputs.pull_request }}/merge
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Review with Codex
+        id: codex
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          prompt-file: .github/codex/prompts/review.md
+          sandbox: read-only
+          codex-args: '["--ephemeral"]'
+
+  comment:
+    needs: review
+    if: needs.review.outputs.final_message != ''
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Post advisory review
+        uses: actions/github-script@v7
+        env:
+          REVIEW_BODY: ${{ needs.review.outputs.final_message }}
+          PR_NUMBER: ${{ inputs.pull_request }}
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: Number(process.env.PR_NUMBER),
+              body: `## Codex advisory review\n\n${process.env.REVIEW_BODY}\n\n_A human maintainer must verify this review._`,
+            });

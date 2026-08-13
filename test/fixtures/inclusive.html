@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <body>
+    <form>
+      <label for="full-name">Full name</label>
+      <input id="full-name" name="full_name" autocomplete="name" maxlength="100" />
+
+      <label for="phone">Phone</label>
+      <input id="phone" name="phone" type="tel" autocomplete="tel" maxlength="24" />
+
+      <label for="postal">Postal code</label>
+      <input id="postal" name="postal" autocomplete="postal-code" />
+
+      <label for="country">Country</label>
+      <select id="country" name="country" autocomplete="country-name">
+        <option>Canada</option>
+        <option>Japan</option>
+      </select>
+
+      <label for="region">State, province, or region</label>
+      <input id="region" name="region" autocomplete="address-level1" />
+
+      <label for="birthday">Birthday</label>
+      <input id="birthday" name="birthday" type="date" />
+    </form>
+  </body>
+</html>
